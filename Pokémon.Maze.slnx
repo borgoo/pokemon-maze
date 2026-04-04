@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Pokémon.Maze.Core/Pokémon.Maze.Core.csproj" />
+  <Project Path="Pokémon.Maze.Tests/Pokémon.Maze.Tests.csproj" />
+  <Project Path="Pokémon.Maze/Pokémon.Maze.csproj" />
+</Solution>
