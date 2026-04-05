@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="Pokémon.Maze.Core/Pokémon.Maze.Core.csproj" />
+  <Project Path="Pokémon.Maze.Matrix.Generator/Pokémon.Maze.Matrix.Generator.csproj" Id="1c86cc10-cd56-4e96-8239-75ec2cac44a7" />
   <Project Path="Pokémon.Maze.Tests/Pokémon.Maze.Tests.csproj" />
   <Project Path="Pokémon.Maze/Pokémon.Maze.csproj" />
 </Solution>
