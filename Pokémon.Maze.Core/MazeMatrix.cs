@@ -6,6 +6,7 @@ namespace Pokémon.Maze.Core;
 public static class MazeMatrix
 {
 
+    private const int MAX_LADDERS = 2;
     private const char _downDirection = 'v';
     private const char _leftDirection = '<';
     private const char _rightDirection = '>';
@@ -51,20 +52,32 @@ public static class MazeMatrix
         int m = matrix.GetLength(1);
         (short X, short Y)? entrance = null;
         (short X, short Y)? exit = null;
+        (short X, short Y)[] ladders = new (short X, short Y)[MAX_LADDERS];
+        int ladderIndex = 0;
 
-        for (short i = 0; i < n; i++)
-            for (short j = 0; j < m; j++) 
-                if(matrix[i, j] == (ushort)ObjectEnum.Entrance)
-                    entrance = (i, j);
-                else if(matrix[i, j] == (ushort)ObjectEnum.Exit)
-                    exit = (i, j);
-                else if(i == 0 || j == 0 || i == n - 1 || j == m - 1)
-                    if(matrix[i, j] != (ushort)ObjectEnum.Wall) throw new ArgumentException("Maze must be closed by walls.");
+        for (short i = 0; i < n; i++) {
+
+            for (short j = 0; j < m; j++) { 
             
-        
-                
-        if(entrance is null) throw new ArgumentException("Entrance not present in the maze.");
+                if (matrix[i, j] == (ushort)ObjectEnum.Entrance) entrance = (i, j);
+                else if (matrix[i, j] == (ushort)ObjectEnum.Exit) exit = (i, j);
+                else if (i == 0 || j == 0 || i == n - 1 || j == m - 1) {
+                    if (matrix[i, j] != (ushort)ObjectEnum.Wall) 
+                        throw new ArgumentException("Maze must be closed by walls.");
+                }
+                else if (matrix[i, j] == (ushort)ObjectEnum.Ladder) {
+
+                    if(ladderIndex >= MAX_LADDERS) throw new ArgumentException($"Too many ladders in the maze (max {MAX_LADDERS}).");
+                    ladders[ladderIndex++] = (i, j);
+                }
+            }
+        }
+
+
+
+        if (entrance is null) throw new ArgumentException("Entrance not present in the maze.");
         if(exit is null) throw new ArgumentException("Exit not present in the maze.");
+        if(ladderIndex != 0 &&ladderIndex != MAX_LADDERS) throw new ArgumentException($"Too few ladders in the maze (expected 0 or {MAX_LADDERS}).");
 
         // setup BFS
         Step currStep = new(entrance.Value.X, entrance.Value.Y, '^', null);
@@ -111,7 +124,6 @@ public static class MazeMatrix
                     }
 
                     if(matrix[neighbor.X, neighbor.Y] == (ushort)ObjectEnum.Wall) continue; // wall
-                    if(matrix[neighbor.X, neighbor.Y] == (ushort)ObjectEnum.Ladder) continue; // ladder
 
                     if(matrix[neighbor.X, neighbor.Y] == (ushort)ObjectEnum.Ice) // is ice
                     {
@@ -159,7 +171,15 @@ public static class MazeMatrix
                     if(seen.Contains(neighbor)) continue; // already visited
 
                     Step newStep = new(neighbor.X, neighbor.Y, direction, currStep);
-                    if (matrix[neighbor.X, neighbor.Y] == (ushort)ObjectEnum.Exit) return GetHistory(newStep); // exit
+
+                    if (matrix[neighbor.X, neighbor.Y] == (ushort)ObjectEnum.Exit) // exit
+                        return GetHistory(newStep); 
+
+                    if(matrix[neighbor.X, neighbor.Y] == (ushort)ObjectEnum.Ladder) { // teleportation
+                        (short X, short Y) to = ladders[0] == (neighbor.X, neighbor.Y) ? ladders[1] : ladders[0];
+                        newStep = new(to.X, to.Y, direction, newStep);
+                        seen.Add((to.X, to.Y));
+                    }
 
                     seen.Add(neighbor);
                     nodes.Enqueue(newStep);
