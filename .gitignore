@@ -86,3 +86,4 @@ BenchmarkDotNet.Artifacts/
 .DS_Store
 Thumbs.db
 Pokémon.Maze.Matrix.Generator/Properties/launchSettings.json
+Pokémon.Maze.Overlay.Generator/Properties/launchSettings.json

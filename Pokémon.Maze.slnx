@@ -1,6 +1,8 @@
 <Solution>
   <Project Path="Pokémon.Maze.Core/Pokémon.Maze.Core.csproj" />
+  <Project Path="Pokémon.Maze.Image/Pokémon.Maze.Image.csproj" Id="e058410b-0e34-4df9-8b7e-24297ac32b4f" />
   <Project Path="Pokémon.Maze.Matrix.Generator/Pokémon.Maze.Matrix.Generator.csproj" Id="1c86cc10-cd56-4e96-8239-75ec2cac44a7" />
+  <Project Path="Pokémon.Maze.Overlay.Generator/Pokémon.Maze.Overlay.Generator.csproj" Id="2856202a-3ac2-4c39-a661-0017d470f291" />
   <Project Path="Pokémon.Maze.Tests/Pokémon.Maze.Tests.csproj" />
   <Project Path="Pokémon.Maze/Pokémon.Maze.csproj" />
 </Solution>
