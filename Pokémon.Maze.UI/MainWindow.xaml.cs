@@ -14,8 +14,11 @@ namespace Pokémon.Maze.UI;
 public partial class MainWindow : Window
 {
     // speed (less is faster!)
-    const int EXPLORATION_SPEED = 180;
-    const int SPRITE_SPEED = 200;
+    const int EXPLORATION_SPEED = 12;
+    const int SPRITE_SPEED = 30;
+
+    // how many ticks to cover 16px between two cells in the path (higher = smoother movement)
+    const int PathWalkSubSteps = 6;
 
     // files
     const string MAZE_FILE = "maze.png";
@@ -23,11 +26,14 @@ public partial class MainWindow : Window
     const string SPRITE_FILE = "sprite.png";
 
     // sprite background color to remove
-    private static readonly Color SpriteSheetOrangeBackgroundTreatedAsTransparent = Color.FromRgb(0xFF, 0x7F, 0x27); // orange
+    private static readonly Color SpriteSheetOrangeBackgroundTreatedAsTransparent = Color.FromRgb(0xFF, 0x7F, 0x27);
 
     private static readonly Brush TransparentTile = Brushes.Transparent;
-    private readonly Brush _visitedBrush = new SolidColorBrush(Color.FromArgb(0x60, 0x44, 0x52, 0x70)); // blue-gray
-    private readonly Brush _frontierBrush = new SolidColorBrush(Color.FromArgb(0xaa, 0xff, 0xc0, 0x40)); // yellow
+    private readonly Brush _visitedBrush = new SolidColorBrush(Color.FromArgb(0x60, 0x44, 0x52, 0x70));
+    private readonly Brush _frontierBrush = new SolidColorBrush(Color.FromArgb(0xaa, 0xff, 0xc0, 0x40));
+    
+    // Dark overlay on each grid cell after the sprite has left it
+    private readonly Brush _pathTrailBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x10, 0x12, 0x22));
 
     private BitmapSource? _spriteSheet;
     private ushort[,]? _mazeTiles;
@@ -35,15 +41,20 @@ public partial class MainWindow : Window
     private List<Snapshot> _snapshots = [];
     private int _rows;
     private int _cols;
-    private int _maxTimelineStep;
     private int _currentStep;
     private int _animPhase;
+    private bool _inSpritePhase;
+    private bool _spriteEntrancePending;
+    private int _pathSegmentFrom;
+    private int _pathSubStep;
+    private bool _ladderTeleportAwaitReappear;
     private readonly DispatcherTimer _timer;
 
     public MainWindow()
     {
         _visitedBrush.Freeze();
         _frontierBrush.Freeze();
+        _pathTrailBrush.Freeze();
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(EXPLORATION_SPEED) };
         _timer.Tick += (_, _) => TimerTick();
 
@@ -84,12 +95,16 @@ public partial class MainWindow : Window
                 if (t.IsFaulted) throw t.Exception; // unsolvable maze
 
                 _snapshots = t.Result;
-                var pathLen = _snapshots[^1].FinalPath?.Length ?? 0;
-                _maxTimelineStep = _snapshots.Count - 1 + Math.Max(0, pathLen);
 
                 _currentStep = 0;
                 _animPhase = 0;
+                _inSpritePhase = false;
+                _spriteEntrancePending = false;
+                _pathSegmentFrom = 0;
+                _pathSubStep = 0;
+                _ladderTeleportAwaitReappear = false;
                 ApplyStep(0);
+                SyncTimerIntervalToPhase();
                 _timer.Start();
 
             }, TaskScheduler.FromCurrentSynchronizationContext());
@@ -171,17 +186,34 @@ public partial class MainWindow : Window
     {
         if (_cells is null) return;
 
-        for (var r = 0; r < _rows; r++)
-        {
-            for (var c = 0; c < _cols; c++)
-                _cells[r, c].Fill = TransparentTile;
-        }
+        ClearOverlayCellsTransparent();
 
         foreach (var (x, y) in snapshot.Visited)
         {
             if (x >= _rows || y >= _cols) continue;
             _cells[x, y].Fill = snapshot.Frontier.Contains((x, y)) ? _frontierBrush : _visitedBrush;
         }
+    }
+
+    private void ClearOverlayCellsTransparent()
+    {
+        if (_cells is null) return;
+        for (var r = 0; r < _rows; r++)
+        {
+            for (var c = 0; c < _cols; c++)
+                _cells[r, c].Fill = TransparentTile;
+        }
+    }
+    private void BeginSpriteOverlayTrail()
+    {
+        OverlayCanvas.Visibility = Visibility.Visible;
+        ClearOverlayCellsTransparent();
+    }
+
+    private void DarkenTrailForPathCell(ushort x, ushort y)
+    {
+        if (_cells is null || x >= _rows || y >= _cols) return;
+        _cells[x, y].Fill = _pathTrailBrush;
     }
 
     private static int FrameForDirection(char direction, bool walk, int phase)
@@ -204,9 +236,12 @@ public partial class MainWindow : Window
         SpriteImage.Source = cropped;
     }
 
+    private (ushort X, ushort Y, char Direction)[]? GetFinalPath()
+        => _snapshots.Count == 0 ? null : _snapshots[^1].FinalPath;
+
     private void ShowPathStep(int pathIndex)
     {
-        var path = _snapshots[^1].FinalPath;
+        var path = GetFinalPath();
         if (path is null || path.Length == 0 || pathIndex < 0 || pathIndex >= path.Length)
         {
             SpriteImage.Visibility = Visibility.Collapsed;
@@ -215,8 +250,8 @@ public partial class MainWindow : Window
 
         var (x, y, dir) = path[pathIndex];
         SpriteImage.Visibility = Visibility.Visible;
-        Canvas.SetLeft(SpriteImage, y * 16);
-        Canvas.SetTop(SpriteImage, x * 16);
+        Canvas.SetLeft(SpriteImage, y * 16.0);
+        Canvas.SetTop(SpriteImage, x * 16.0);
 
         var onIce = _mazeTiles is not null
             && x < _rows && y < _cols
@@ -225,45 +260,181 @@ public partial class MainWindow : Window
         SetSpriteFrame(FrameForDirection(dir, walk, _animPhase));
     }
 
+    private bool IsLadderTeleportSegment((ushort X, ushort Y, char Direction) a, (ushort X, ushort Y, char Direction) b)
+    {
+        if (_mazeTiles is null) return false;
+        if (a.X >= _rows || a.Y >= _cols || b.X >= _rows || b.Y >= _cols) return false;
+        if (_mazeTiles[a.X, a.Y] != (ushort)ObjectEnum.Ladder) return false;
+        if (_mazeTiles[b.X, b.Y] != (ushort)ObjectEnum.Ladder) return false;
+        var manhattan = Math.Abs((int)b.X - a.X) + Math.Abs((int)b.Y - a.Y);
+        return manhattan != 1;
+    }
+
+    private static char DirectionFromGridStep((ushort X, ushort Y, char Direction) from, (ushort X, ushort Y, char Direction) to)
+    {
+        var sdr = (int)to.X - from.X;
+        var sdc = (int)to.Y - from.Y;
+        if (sdr == 1) return 'v';
+        if (sdr == -1) return '^';
+        if (sdc == 1) return '>';
+        if (sdc == -1) return '<';
+        return to.Direction;
+    }
+
+    private void ShowPathSegmentInterpolated(int segmentFrom, int subStep)
+    {
+        var path = GetFinalPath();
+        if (path is null || path.Length < 2) return;
+
+        var a = path[segmentFrom];
+        var b = path[segmentFrom + 1];
+        var t = subStep / (double)PathWalkSubSteps;
+        var left = a.Y * 16.0 + ((int)b.Y - a.Y) * 16.0 * t;
+        var top = a.X * 16.0 + ((int)b.X - a.X) * 16.0 * t;
+
+        SpriteImage.Visibility = Visibility.Visible;
+        Canvas.SetLeft(SpriteImage, left);
+        Canvas.SetTop(SpriteImage, top);
+
+        var dir = DirectionFromGridStep(a, b);
+        var onIce = _mazeTiles is not null
+            && a.X < _rows && a.Y < _cols
+            && _mazeTiles[a.X, a.Y] == (ushort)ObjectEnum.Ice;
+        var walk = segmentFrom < path.Length - 1 && !onIce;
+        SetSpriteFrame(FrameForDirection(dir, walk, _animPhase));
+    }
+
     private void ApplyStep(int step)
     {
         if (_snapshots.Count == 0) return;
 
         var n = _snapshots.Count;
-        if (step < n)
-        {
-            OverlayCanvas.Visibility = Visibility.Visible;
-            ApplyOverlay(_snapshots[step]);
-            SpriteImage.Visibility = Visibility.Collapsed;
-        }
-        else
-        {
-            OverlayCanvas.Visibility = Visibility.Collapsed;
-            var pathIndex = step - n;
-            ShowPathStep(pathIndex);
-        }
+        if (step < 0 || step >= n) return;
+
+        OverlayCanvas.Visibility = Visibility.Visible;
+        ApplyOverlay(_snapshots[step]);
+        SpriteImage.Visibility = Visibility.Collapsed;
     }
 
     private void SyncTimerIntervalToPhase()
     {
         if (_snapshots.Count == 0) return;
-        var n = _snapshots.Count;
-        _timer.Interval = TimeSpan.FromMilliseconds(
-            _currentStep >= n ? SPRITE_SPEED : EXPLORATION_SPEED);
+        _timer.Interval = TimeSpan.FromMilliseconds(_inSpritePhase ? SPRITE_SPEED : EXPLORATION_SPEED);
     }
 
     private void TimerTick()
     {
         if (_snapshots.Count == 0) return;
 
-        if (_currentStep < _maxTimelineStep)
+        var n = _snapshots.Count;
+        var path = GetFinalPath();
+
+        if (!_inSpritePhase)
         {
-            _currentStep++;
-            _animPhase++;
-            ApplyStep(_currentStep);
+            if (_currentStep < n - 1)
+            {
+                _currentStep++;
+                _animPhase++;
+                ApplyStep(_currentStep);
+            }
+            else
+            {
+                _inSpritePhase = true;
+                BeginSpriteOverlayTrail();
+
+                if (path is null || path.Length == 0)
+                {
+                    _timer.Stop();
+                    return;
+                }
+
+                if (path.Length == 1)
+                {
+                    ShowPathStep(0);
+                    DarkenTrailForPathCell(path[0].X, path[0].Y);
+                    _animPhase++;
+                    _timer.Stop();
+                    return;
+                }
+
+                _spriteEntrancePending = true;
+                _pathSegmentFrom = 0;
+                _pathSubStep = 0;
+                _ladderTeleportAwaitReappear = false;
+            }
+
             SyncTimerIntervalToPhase();
+            return;
         }
-        else
+
+        _animPhase++;
+
+        if (_spriteEntrancePending)
+        {
+            ShowPathStep(0);
+            _spriteEntrancePending = false;
+            SyncTimerIntervalToPhase();
+            return;
+        }
+
+        if (path is null || path.Length < 2)
+        {
             _timer.Stop();
+            return;
+        }
+
+        var segA = path[_pathSegmentFrom];
+        var segB = path[_pathSegmentFrom + 1];
+        if (IsLadderTeleportSegment(segA, segB))
+        {
+            if (!_ladderTeleportAwaitReappear)
+            {
+                SpriteImage.Visibility = Visibility.Collapsed;
+                _ladderTeleportAwaitReappear = true;
+            }
+            else
+            {
+                DarkenTrailForPathCell(segA.X, segA.Y);
+                _pathSegmentFrom++;
+                _pathSubStep = 0;
+                _ladderTeleportAwaitReappear = false;
+                if (_pathSegmentFrom >= path.Length - 1)
+                {
+                    var goal = path[path.Length - 1];
+                    DarkenTrailForPathCell(goal.X, goal.Y);
+                    ShowPathStep(path.Length - 1);
+                    _timer.Stop();
+                    return;
+                }
+
+                ShowPathStep(_pathSegmentFrom);
+            }
+
+            SyncTimerIntervalToPhase();
+            return;
+        }
+
+        _pathSubStep++;
+        ShowPathSegmentInterpolated(_pathSegmentFrom, _pathSubStep);
+
+        if (_pathSubStep < PathWalkSubSteps)
+        {
+            SyncTimerIntervalToPhase();
+            return;
+        }
+
+        DarkenTrailForPathCell(path[_pathSegmentFrom].X, path[_pathSegmentFrom].Y);
+        _pathSubStep = 0;
+        _pathSegmentFrom++;
+        if (_pathSegmentFrom >= path.Length - 1)
+        {
+            var goal = path[path.Length - 1];
+            DarkenTrailForPathCell(goal.X, goal.Y);
+            ShowPathStep(path.Length - 1);
+            _timer.Stop();
+            return;
+        }
+
+        SyncTimerIntervalToPhase();
     }
 }
