@@ -14,7 +14,7 @@ namespace Pokémon.Maze.UI;
 public partial class MainWindow : Window
 {
     // speed (less is faster!)
-    const int EXPLORATION_SPEED = 12;
+    const int EXPLORATION_SPEED = 120;
     const int SPRITE_SPEED = 30;
 
     // how many ticks to cover 16px between two cells in the path (higher = smoother movement)
@@ -29,11 +29,11 @@ public partial class MainWindow : Window
     private static readonly Color SpriteSheetOrangeBackgroundTreatedAsTransparent = Color.FromRgb(0xFF, 0x7F, 0x27);
 
     private static readonly Brush TransparentTile = Brushes.Transparent;
-    private readonly Brush _visitedBrush = new SolidColorBrush(Color.FromArgb(0x60, 0x44, 0x52, 0x70));
-    private readonly Brush _frontierBrush = new SolidColorBrush(Color.FromArgb(0xaa, 0xff, 0xc0, 0x40));
+    private static readonly Brush _visitedBrush = new SolidColorBrush(Color.FromArgb(0x60, 0x44, 0x52, 0x70));
+    private static readonly Brush _frontierBrush = new SolidColorBrush(Color.FromArgb(0xaa, 0xff, 0xc0, 0x40));
     
     // Dark overlay on each grid cell after the sprite has left it
-    private readonly Brush _pathTrailBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x10, 0x12, 0x22));
+    private static readonly Brush _pathTrailBrush = _visitedBrush;
 
     private BitmapSource? _spriteSheet;
     private ushort[,]? _mazeTiles;
