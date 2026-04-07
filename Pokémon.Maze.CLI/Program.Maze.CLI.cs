@@ -27,14 +27,8 @@ static char CellDisplayChar(ushort cell) => cell switch
 if (args.Length != 1) throw new ArgumentException("Path to the grid file is required.\n");
 if (string.IsNullOrEmpty(args[0])) throw new ArgumentException("Path to the grid file is required.\n");
 
-string[] lines = File.ReadAllLines(args[0]);
-int rows = lines.Length;
-int cols = lines[0].Length;
-ushort[,] matrix = new ushort[rows, cols];
-for (int i = 0; i < rows; i++)
-    for (int j = 0; j < cols; j++)
-        matrix[i, j] = (ushort)(lines[i][j] - '0');
 
+ushort[,] matrix = MazeLoader.GetFromFile(args[0]);
 (ushort X, ushort Y, char Direction)[] solutionPathHistory = MazeMatrix.Solve(matrix);
 if (solutionPathHistory.Length == 0) throw new InvalidOperationException("Solution path solutionPathHistory is empty.");
 

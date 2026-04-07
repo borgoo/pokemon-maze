@@ -1,4 +1,5 @@
-﻿using Pokémon.Maze.Core.Enums;
+﻿using Pokémon.Maze.Core;
+using Pokémon.Maze.Core.Enums;
 using Pokémon.Maze.Image;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -69,14 +70,7 @@ class Program
 
 
         // load grid
-        string[] lines = File.ReadAllLines(gridPath);
-        int rows = lines.Length;
-        int cols = lines[0].Length;
-        ushort [,] grid = new ushort[rows, cols];
-        for(int i = 0; i < rows; i++)
-            for(int j = 0; j < cols; j++)
-                grid[i, j] = (ushort)(lines[i][j] - '0');
-
+        ushort [,] grid = MazeLoader.GetFromFile(gridPath);
 
         // Visual overlay
         string fileId = $"{DateTime.Now.Ticks:x}";
