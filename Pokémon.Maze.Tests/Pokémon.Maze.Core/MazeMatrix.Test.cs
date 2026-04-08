@@ -41,7 +41,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, ENTRANCE_VAL, WALL_VAL, EXIT_VAL, WALL_VAL, WALL_VAL}
         };
 
-       (ushort X, ushort Y, char Direction)[] history =  MazeMatrix.Solve(maze);
+       (ushort X, ushort Y, char Direction)[] history =  BFS.Solve(maze);
 
         Assert.That(history, Is.EquivalentTo(expected));
 
@@ -73,7 +73,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, ENTRANCE_VAL, WALL_VAL, EXIT_VAL, WALL_VAL, WALL_VAL}
         };
 
-        (ushort X, ushort Y, char Direction)[] history = MazeMatrix.Solve(maze);
+        (ushort X, ushort Y, char Direction)[] history = BFS.Solve(maze);
 
         Assert.That(history, Is.EquivalentTo(expected));
 
@@ -104,7 +104,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, ENTRANCE_VAL, WALL_VAL, EXIT_VAL, WALL_VAL, WALL_VAL}
         };
 
-        (ushort X, ushort Y, char Direction)[] history = MazeMatrix.Solve(maze);
+        (ushort X, ushort Y, char Direction)[] history = BFS.Solve(maze);
 
         Assert.That(history, Is.EquivalentTo(expected));
     }
@@ -121,7 +121,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, ENTRANCE_VAL, WALL_VAL, EXIT_VAL, WALL_VAL, WALL_VAL}
         };
 
-        Assert.Throws<UnsolvableMazeException>(() => MazeMatrix.Solve(maze));
+        Assert.Throws<UnsolvableMazeException>(() => BFS.Solve(maze));
     }
 
     [Test]
@@ -135,7 +135,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, EXIT_VAL, WALL_VAL, ENTRANCE_VAL, WALL_VAL, WALL_VAL}
         };
 
-        Assert.Throws<UnsolvableMazeException>(() => MazeMatrix.Solve(maze));
+        Assert.Throws<UnsolvableMazeException>(() => BFS.Solve(maze));
     }
 
     [Test]
@@ -149,7 +149,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, EXIT_VAL, WALL_VAL, ENTRANCE_VAL, WALL_VAL, WALL_VAL}
         };
 
-        Assert.Throws<UnsolvableMazeException>(() => MazeMatrix.Solve(maze));
+        Assert.Throws<UnsolvableMazeException>(() => BFS.Solve(maze));
     }
 
     [Test]
@@ -176,7 +176,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, EXIT_VAL, WALL_VAL, ENTRANCE_VAL, WALL_VAL, WALL_VAL}
         };
 
-        (ushort X, ushort Y, char Direction)[] history = MazeMatrix.Solve(maze);
+        (ushort X, ushort Y, char Direction)[] history = BFS.Solve(maze);
 
         Assert.That(history, Is.EquivalentTo(expected));
     }
@@ -192,7 +192,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, EXIT_VAL, WALL_VAL, ENTRANCE_VAL, WALL_VAL, WALL_VAL}
         };
 
-        Assert.Throws<UnsolvableMazeException>(() => MazeMatrix.Solve(maze));
+        Assert.Throws<UnsolvableMazeException>(() => BFS.Solve(maze));
     }
 
     [Test]
@@ -206,7 +206,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, ENTRANCE_VAL, WALL_VAL, EXIT_VAL, WALL_VAL, WALL_VAL}
         };
 
-        Assert.Throws<UnsolvableMazeException>(() => MazeMatrix.Solve(maze));
+        Assert.Throws<UnsolvableMazeException>(() => BFS.Solve(maze));
     }
     
     [Test]
@@ -220,7 +220,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, EXIT_VAL, WALL_VAL, ENTRANCE_VAL, WALL_VAL, WALL_VAL}
         };
 
-        Assert.Throws<UnsolvableMazeException>(() => MazeMatrix.Solve(maze));
+        Assert.Throws<UnsolvableMazeException>(() => BFS.Solve(maze));
     }
 
 
@@ -251,7 +251,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, ENTRANCE_VAL, WALL_VAL, EXIT_VAL, WALL_VAL, WALL_VAL}
         };
 
-        (ushort X, ushort Y, char Direction)[] history = MazeMatrix.Solve(maze);
+        (ushort X, ushort Y, char Direction)[] history = BFS.Solve(maze);
 
         Assert.That(history, Is.EquivalentTo(expected));
     }
@@ -281,7 +281,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, ENTRANCE_VAL, WALL_VAL, WALL_VAL, EXIT_VAL, WALL_VAL}
         };
 
-        (ushort X, ushort Y, char Direction)[] history = MazeMatrix.Solve(maze);
+        (ushort X, ushort Y, char Direction)[] history = BFS.Solve(maze);
 
         Assert.That(history, Is.EquivalentTo(expected));
     }
@@ -297,7 +297,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, ENTRANCE_VAL, WALL_VAL, WALL_VAL, EXIT_VAL, WALL_VAL}
         };
 
-        Assert.Throws<UnsolvableMazeException>(() => MazeMatrix.Solve(maze));
+        Assert.Throws<UnsolvableMazeException>(() => BFS.Solve(maze));
     }
    
     [Test]
@@ -326,7 +326,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, ENTRANCE_VAL, WALL_VAL, EXIT_VAL, WALL_VAL, WALL_VAL, WALL_VAL}
         };
 
-        (ushort X, ushort Y, char Direction)[] history = MazeMatrix.Solve(maze);
+        (ushort X, ushort Y, char Direction)[] history = BFS.Solve(maze);
 
         Assert.That(history, Is.EquivalentTo(expected));
     }
@@ -349,7 +349,7 @@ internal class GameEngine_EvaluateHands_Tests
             {WALL_VAL, ENTRANCE_VAL, WALL_VAL, EXIT_VAL, WALL_VAL, WALL_VAL, WALL_VAL}
         };
 
-        (ushort X, ushort Y, char Direction)[] history = MazeMatrix.Solve(maze);
+        (ushort X, ushort Y, char Direction)[] history = BFS.Solve(maze);
 
         Assert.That(history, Is.EquivalentTo(expected));
     }
@@ -367,7 +367,7 @@ internal class GameEngine_EvaluateHands_Tests
         };
 
 
-        Assert.DoesNotThrow(() => MazeMatrix.Solve(noLadderMaze));
+        Assert.DoesNotThrow(() => BFS.Solve(noLadderMaze));
 
     }
 
@@ -384,7 +384,7 @@ internal class GameEngine_EvaluateHands_Tests
         };
 
 
-        Assert.Throws<ArgumentException>(() => MazeMatrix.Solve(oneLadderMaze));
+        Assert.Throws<ArgumentException>(() => BFS.Solve(oneLadderMaze));
 
     }
 
@@ -401,7 +401,7 @@ internal class GameEngine_EvaluateHands_Tests
         };
 
 
-        Assert.DoesNotThrow(() => MazeMatrix.Solve(twoLaddersMaze));
+        Assert.DoesNotThrow(() => BFS.Solve(twoLaddersMaze));
     }
 
     [Test]
@@ -417,6 +417,6 @@ internal class GameEngine_EvaluateHands_Tests
         };
 
 
-        Assert.Throws<ArgumentException>(() => MazeMatrix.Solve(twoLaddersMaze));
+        Assert.Throws<ArgumentException>(() => BFS.Solve(twoLaddersMaze));
     }
 }

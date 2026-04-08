@@ -5,7 +5,7 @@ using System.Threading.Channels;
 
 namespace Pokémon.Maze.Core;
 
-public static class MazeMatrix
+public static class BFS
 {
     private const int MAX_LADDERS = 2;
     private const char _downDirection = 'v';

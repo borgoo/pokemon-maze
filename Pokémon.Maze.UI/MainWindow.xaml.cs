@@ -84,7 +84,7 @@ public partial class MainWindow : Window
             await Task.Run(async () =>
             {
                 var channel = Channel.CreateUnbounded<Snapshot>();
-                var writeTask = MazeMatrix.SolveWithSnapshotsAsync(matrix, channel.Writer);
+                var writeTask = BFS.SolveWithSnapshotsAsync(matrix, channel.Writer);
                 var list = new List<Snapshot>();
                 await foreach (var s in channel.Reader.ReadAllAsync())
                     list.Add(s);

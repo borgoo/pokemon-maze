@@ -30,7 +30,7 @@ if (string.IsNullOrEmpty(args[0])) throw new ArgumentException("Path to the grid
 
 
 ushort[,] matrix = MazeLoader.GetFromFile(args[0]);
-(ushort X, ushort Y, char Direction)[] solutionPathHistory = MazeMatrix.Solve(matrix);
+(ushort X, ushort Y, char Direction)[] solutionPathHistory = BFS.Solve(matrix);
 if (solutionPathHistory.Length == 0) throw new InvalidOperationException("Solution path solutionPathHistory is empty.");
 
 const int frameDelayMs = SPEED;
