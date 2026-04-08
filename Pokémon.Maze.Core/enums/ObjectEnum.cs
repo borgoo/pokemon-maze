@@ -9,5 +9,6 @@ public enum ObjectEnum : ushort
     Ladder,
     Ice,
     JumpDown,
-    JumpLeft
+    JumpLeft,
+    Item
 }

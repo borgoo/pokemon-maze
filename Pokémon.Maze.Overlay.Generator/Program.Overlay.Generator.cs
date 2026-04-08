@@ -23,6 +23,7 @@ class Program
     private static readonly Rgba32 LADDER_COLOR = new(150, 80, 220, 130);
     private static readonly Rgba32 JUMP_DOWN_COLOR = new(40, 200, 110, 130);
     private static readonly Rgba32 JUMP_LEFT_COLOR = new(70, 130, 255, 130);
+    private static readonly Rgba32 ITEM_COLOR = new(252, 252, 254, 140);
 
     // color mapping
     private static readonly Dictionary<ObjectEnum, Rgba32> OBJECT_COLOR_MAP = new() {
@@ -33,7 +34,8 @@ class Program
         {ObjectEnum.Exit, EXIT_COLOR},
         {ObjectEnum.Ladder, LADDER_COLOR},
         {ObjectEnum.JumpDown, JUMP_DOWN_COLOR},
-        {ObjectEnum.JumpLeft, JUMP_LEFT_COLOR}
+        {ObjectEnum.JumpLeft, JUMP_LEFT_COLOR},
+        {ObjectEnum.Item, ITEM_COLOR}
     };
 
     static void Main(string[] args)

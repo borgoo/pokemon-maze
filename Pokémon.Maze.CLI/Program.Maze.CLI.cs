@@ -20,6 +20,7 @@ static char CellDisplayChar(ushort cell) => cell switch
     (ushort)ObjectEnum.Exit => 'E',
     (ushort)ObjectEnum.JumpDown => '_',
     (ushort)ObjectEnum.JumpLeft => '|',
+    (ushort)ObjectEnum.Item => '◓',
     _ => '?'
 };
 
