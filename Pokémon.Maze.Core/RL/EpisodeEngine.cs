@@ -3,7 +3,7 @@ using Pokémon.Maze.Core.Enums;
 
 namespace Pokémon.Maze.Core.RL;
 
-internal sealed class EpisodeEngine
+public sealed class EpisodeEngine
 {
     public EpisodeEngine(ushort[,] matrix)
     {

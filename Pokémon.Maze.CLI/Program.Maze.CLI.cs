@@ -6,8 +6,8 @@ Console.OutputEncoding = Encoding.UTF8;
 const ConsoleColor SPRITE_COLOR = ConsoleColor.Yellow;
 
 const int SLOW = 120;
-const int NORMAL = 60;
-const int FAST = 30;
+//const int NORMAL = 60;
+//const int FAST = 30;
 const int SPEED = SLOW;
 
 static char CellDisplayChar(ushort cell) => cell switch

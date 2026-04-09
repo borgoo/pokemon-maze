@@ -6,5 +6,5 @@ public enum Action
     MoveDown,
     MoveLeft,
     MoveRight,
-    PickUp
+    // pickup is treated artificially
 }
