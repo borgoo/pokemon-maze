@@ -1,4 +1,5 @@
-﻿using Pokémon.Maze.Core.RL;
+﻿using System.Runtime.CompilerServices;
+using Pokémon.Maze.Core.RL;
 using Pokémon.Maze.TrainingField.models;
 using Action = Pokémon.Maze.Core.RL.Action;
 
@@ -15,7 +16,7 @@ internal sealed class TrainingEpisodeOrchestrator(
 {
     private const float STARTING_EPSILON = 1f;
     private const float ENDING_EPSILON = 0.01f;
-    private const float EPSILON_CUTOFF = 0.9f;
+    private const float EPSILON_CUTOFF = 0.95f;
 
 
     private readonly int _maxSteps = maxSteps ?? int.MaxValue;
@@ -24,6 +25,7 @@ internal sealed class TrainingEpisodeOrchestrator(
     private readonly (int X, int Y) _exitPosition = exitPosition;
     private readonly IReadOnlyDictionary<ItemType, (int X, int Y)> _itemsPositions = itemsPositions;
     private readonly TrainingPawn _trainingPawn = trainingPawn;
+    private BitMask _visitedCells = new(matrix.GetLength(0), matrix.GetLength(1));
 
 
     public bool Run(int currEpisodeNum, int totalEpisodes) 
@@ -33,10 +35,14 @@ internal sealed class TrainingEpisodeOrchestrator(
 
         float epsilon = GetEpsilon(currEpisodeNum, totalEpisodes);
 
+        _visitedCells.Clear();
+        _visitedCells.MarkAsVisited(_entrancePosition);
+
 
         HashSet<Action> availableActions = _episodeEngine.GetAvailableActions(episodeState);
         bool timeout = false;
         bool exitFound = false;
+
 
         while(true) { 
 
@@ -56,10 +62,11 @@ internal sealed class TrainingEpisodeOrchestrator(
             bool done = timeout || exitFound;
 
             // r
-            float r = ComputeReward(s, stepCount, nextS, nextStepCount, timeout, exitFound);
+            float r = ComputeReward(s, stepCount, nextS, nextStepCount, timeout, exitFound, _visitedCells);
 
             // actions valid for s' -> for the next loop as well
             HashSet<Action> nextAvailableActions = _episodeEngine.GetAvailableActions(episodeState);
+            _visitedCells.MarkAsVisited((nextS.X, nextS.Y));
 
             if(done){
                 _trainingPawn.LearnFromTerminalState(s, a, r);
@@ -78,7 +85,7 @@ internal sealed class TrainingEpisodeOrchestrator(
         _episodeEngine.Move(action, episodeState);
     }
 
-    private float ComputeReward(QStatus s, int stepCount, QStatus nextS, int nextStepCount, bool timeout, bool exitFound)
+    private float ComputeReward(QStatus s, int stepCount, QStatus nextS, int nextStepCount, bool timeout, bool exitFound, BitMask visitedCells)
     {
         // - delta steps
         float reward = (nextStepCount - stepCount) * Rewards.StepCost; // - delta steps
@@ -89,8 +96,11 @@ internal sealed class TrainingEpisodeOrchestrator(
         int distDelta = sDistanceToExit - nextSDistanceToExit;
         float shaping = nextSDistanceToExit < sDistanceToExit 
                         ? distDelta * Rewards.CloseToExit               // + reward if closer to the exit
-                        : distDelta * (Rewards.CloseToExit * 0.5f);     // if I'm farther - penalization ( smaller that reward to encourage exploration)
+                        : distDelta * (Rewards.CloseToExit * 0.2f);     // if I'm farther - penalization ( smaller that reward to encourage exploration)
         reward += shaping;
+
+        // discourage revisiting cells
+        if(visitedCells.IsVisited((nextS.X, nextS.Y))) reward += Rewards.RevisitingCell;
 
         // + items rewards
         if (s.TM24PickedUp != nextS.TM24PickedUp) reward += Rewards.TM24PickedUp;
@@ -118,5 +128,4 @@ internal sealed class TrainingEpisodeOrchestrator(
     }
 
     private static int GetManhattanDistance((int X, int Y) pos1, (int X, int Y) pos2) => Math.Abs(pos1.X - pos2.X) + Math.Abs(pos1.Y - pos2.Y);
-
 }
