@@ -20,26 +20,45 @@ public sealed class QTable(int NumOfPossibleStates, int NumOfPossibleActions) {
         for (int s = 0; s < NumOfPossibleStates; s++)
         {
             for (int a = 0; a < NumOfPossibleActions; a++)
-                sb.Append($"{this[s, a]:F4}\t");
+            {
+                sb.Append(this[s, a].ToString("G9", CultureInfo.InvariantCulture));
+                if (a < NumOfPossibleActions - 1) sb.Append('\t');
+            }
             sb.AppendLine();
         }
-        
         return sb.ToString();
     }
 
-    public static QTable FromString(string data)
+    public void Save(BinaryWriter writer)
     {
-        var rows = data.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        int numStates = rows.Length;
-        int numActions = rows[0].Split('\t', StringSplitOptions.RemoveEmptyEntries).Length;
+        // header
+        writer.Write(NumOfPossibleStates);
+        writer.Write(NumOfPossibleActions);
 
-        QTable table = new(numStates, numActions);
-        for (int s = 0; s < numStates; s++)
+        for (int i = 0; i < NumOfPossibleStates; i++)
         {
-            var cols = rows[s].Split('\t', StringSplitOptions.RemoveEmptyEntries);
-            for (int a = 0; a < numActions; a++)
-                table[s, a] = float.Parse(cols[a], CultureInfo.InvariantCulture);
+            for (int j = 0; j < NumOfPossibleActions; j++)
+            {
+                writer.Write(this[i, j]); // 4 bytes for the float
+            }
         }
-        return table;
+    }
+
+    public static QTable Load(BinaryReader reader)
+    {
+        int numOfPossibleStates = reader.ReadInt32();
+        int numOfPossibleActions = reader.ReadInt32();
+
+        QTable qTable = new(numOfPossibleStates, numOfPossibleActions);
+
+        for (int i = 0; i < numOfPossibleStates; i++)
+        {
+            for (int j = 0; j < numOfPossibleActions; j++)
+            {
+                qTable[i, j] = reader.ReadSingle(); // Read 4 bytes
+            }
+        }
+
+        return qTable;
     }
 }

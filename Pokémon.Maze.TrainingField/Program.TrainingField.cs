@@ -1,15 +1,19 @@
 ﻿using Pokémon.Maze.Core;
 using Pokémon.Maze.Core.Enums;
 using Pokémon.Maze.Core.RL;
+using Pokémon.Maze.TrainingField.models;
+using System.Globalization;
 
 namespace Pokémon.Maze.TrainingField;
 
 internal static class Program
 {
-    private const int TIMEOUT_STEPS = 200;
+    private const int TIMEOUT_STEPS = 50000;
+    private const float STARTING_ALPHA = 0.1f;
+    private const float GAMMA = 0.99f;
 
     private const string OUTPUT_DIRECTORY_NAME = "outputs"; 
-    private const string OUTPUT_FILE_NAME = "qTable.txt"; 
+    private const string OUTPUT_FILE_NAME = "qTable.bin"; 
 
     // top to bottom (tm, pearl, masterball)
     private static readonly IReadOnlyDictionary<ItemType, (int X, int Y)> _itemsPositions = new Dictionary<ItemType, (int X, int Y)> {
@@ -17,6 +21,8 @@ internal static class Program
         {ItemType.Pearl, (9, 33)},
         {ItemType.Masterball, (23, 32)},
     };
+
+    private readonly static CultureInfo _cultureInfo = new("it-IT");
 
     public static void Main(string[] args)
     {
@@ -36,22 +42,31 @@ internal static class Program
         if(entrancePosition is null) throw new ArgumentException("Entrance position not found.");
         if(exitPosition is null) throw new ArgumentException("Exit position not found.");
 
+        const int progressPrintInterval = 1; // print progress every 10%
         Console.WriteLine($"({DateTime.Now:HH:mm:ss}) Training started...");
-        Console.WriteLine($"Grid: {gridPath} | Number of episodes: {numOfEpisodes}");
+        Console.WriteLine($"Grid: {gridPath} | Number of episodes: {numOfEpisodes.ToString("N0", _cultureInfo)} | Timeout steps: {TIMEOUT_STEPS.ToString("N0", _cultureInfo)} | Progress print interval: {progressPrintInterval}%");
 
-        TrainingEpisodeOrchestrator orchestrator = new(entrancePosition.Value, exitPosition.Value, matrix, _itemsPositions, TIMEOUT_STEPS);
-        string qTableResult = String.Empty;
-        for(int i = 0; i < numOfEpisodes; i++) {
+        TrainingPawn trainingPawn = new(STARTING_ALPHA, GAMMA, (matrix.GetLength(0), matrix.GetLength(1)));
+        TrainingEpisodeOrchestrator orchestrator = new(entrancePosition.Value, exitPosition.Value, matrix, _itemsPositions, trainingPawn, TIMEOUT_STEPS);
 
-            qTableResult = orchestrator.Run(i, numOfEpisodes);
+        int numOfExitFound = 0;
+        for (int i = 1; i <= numOfEpisodes; i++) {
+
+            bool foundExit = orchestrator.Run(i, numOfEpisodes);
+
+            if (foundExit) numOfExitFound++;
+
+            if (i % (numOfEpisodes / (100 / progressPrintInterval) ) == 0) Console.WriteLine($"({DateTime.Now:HH:mm:ss}) Episodes done : {i.ToString("N0", _cultureInfo)} | Exits found: {numOfExitFound.ToString("N0", _cultureInfo)}");
 
         }
 
         Console.WriteLine($"({DateTime.Now:HH:mm:ss}) Training completed.");
         string directory = Path.Combine(OUTPUT_DIRECTORY_NAME, Guid.CreateVersion7().ToString());
         Directory.CreateDirectory(directory);
-        string path = Path.Combine(directory, OUTPUT_FILE_NAME); 
-        File.WriteAllText(path, qTableResult);
+        string path = Path.Combine(directory, OUTPUT_FILE_NAME);
+        using var stream = File.Open(path, FileMode.Create);
+        using var writer = new BinaryWriter(stream);
+        trainingPawn.SaveQTable(writer);
         Console.WriteLine("QTable saved to: " + path);
 
     }

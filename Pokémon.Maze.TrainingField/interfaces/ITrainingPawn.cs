@@ -11,5 +11,5 @@ internal interface ITrainingPawn
     public void LearnFromTerminalState(QStatus s, Action a, float r);
     public void LearnAndBootstrap(QStatus s, Action a, float r, QStatus nextS, HashSet<Action> nextStepValidActions);
 
-    public string ExportQTable();
+    public void SaveQTable(BinaryWriter writer);
 }

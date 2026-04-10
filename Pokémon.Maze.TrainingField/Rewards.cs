@@ -8,4 +8,5 @@ public static class Rewards
     public const float Timeout = -50;
     public const float ExitFound = 1000;
     public const float StepCost = -1;
+    public const float CloseToExit = 0.5f;
 }

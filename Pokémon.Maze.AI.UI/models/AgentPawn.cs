@@ -1,8 +1,8 @@
 ﻿using Pokémon.Maze.Core.RL;
-using Pokémon.Maze.Play.interfaces;
+using Pokémon.Maze.AI.UI.interfaces;
 using Action = Pokémon.Maze.Core.RL.Action;
 
-namespace Pokémon.Maze.Play.models;
+namespace Pokémon.Maze.AI.UI.models;
 
 internal class AgentPawn : IPawn
 {

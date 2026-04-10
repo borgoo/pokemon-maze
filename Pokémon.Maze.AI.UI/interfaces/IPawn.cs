@@ -1,7 +1,7 @@
 ﻿using Pokémon.Maze.Core.RL;
 using Action = Pokémon.Maze.Core.RL.Action;
 
-namespace Pokémon.Maze.Play.interfaces;
+namespace Pokémon.Maze.AI.UI.interfaces;
 
 /// <summary>
 /// Play a game

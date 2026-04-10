@@ -9,14 +9,13 @@ internal sealed class TrainingEpisodeOrchestrator(
     (int X, int Y) exitPosition,
     ushort[,] matrix,
     IReadOnlyDictionary<ItemType, (int X, int Y)> itemsPositions,
+    TrainingPawn trainingPawn,
     int? maxSteps = null
 )
 {
-    private const float STARTING_ALPHA = 0.1f;
     private const float STARTING_EPSILON = 1f;
     private const float ENDING_EPSILON = 0.01f;
     private const float EPSILON_CUTOFF = 0.9f;
-    private const float GAMMA = 0.9f;
 
 
     private readonly int _maxSteps = maxSteps ?? int.MaxValue;
@@ -24,19 +23,10 @@ internal sealed class TrainingEpisodeOrchestrator(
     private readonly (int X, int Y) _entrancePosition = entrancePosition;
     private readonly (int X, int Y) _exitPosition = exitPosition;
     private readonly IReadOnlyDictionary<ItemType, (int X, int Y)> _itemsPositions = itemsPositions;
-    private readonly TrainingPawn _trainingPawn = new(
-                                                    alpha: STARTING_ALPHA,
-                                                    gamma: GAMMA,
-                                                    matrixSize: (matrix.GetLength(0), matrix.GetLength(1))
-                                                );
+    private readonly TrainingPawn _trainingPawn = trainingPawn;
 
-    /// <summary>
-    /// Run an episode and return the QTable as a string
-    /// </summary>
-    /// <param name="currEpisodeNum"></param>
-    /// <param name="totalEpisodes"></param>
-    /// <returns>QTable as string</returns>
-    public string Run(int currEpisodeNum, int totalEpisodes) 
+
+    public bool Run(int currEpisodeNum, int totalEpisodes) 
     { 
 
         EpisodeState episodeState = new(_entrancePosition, _itemsPositions);
@@ -45,11 +35,14 @@ internal sealed class TrainingEpisodeOrchestrator(
 
 
         HashSet<Action> availableActions = _episodeEngine.GetAvailableActions(episodeState);
+        bool timeout = false;
+        bool exitFound = false;
 
         while(true) { 
 
             QStatus s = episodeState.ToQStatus();
             int stepCount = episodeState.CurrentStep;
+
 
             Action a = _trainingPawn.ChooseAction(availableActions, s, epsilon);
 
@@ -58,8 +51,8 @@ internal sealed class TrainingEpisodeOrchestrator(
             // s'
             QStatus nextS = episodeState.ToQStatus();
             int nextStepCount = episodeState.CurrentStep;
-            bool timeout = episodeState.CurrentStep >= _maxSteps;
-            bool exitFound = episodeState.CurrentPosition == _exitPosition;
+            timeout = episodeState.CurrentStep >= _maxSteps;
+            exitFound = episodeState.CurrentPosition == _exitPosition;
             bool done = timeout || exitFound;
 
             // r
@@ -78,22 +71,34 @@ internal sealed class TrainingEpisodeOrchestrator(
 
         }
 
-        return _trainingPawn.ExportQTable();
-
+        return exitFound;
     }
     private void ApplyActionOnEpisodeState(Action action, EpisodeState episodeState)
     {
         _episodeEngine.Move(action, episodeState);
     }
 
-    private static float ComputeReward(QStatus s, int stepCount, QStatus nextS, int nextStepCount, bool timeout, bool exitFound)
+    private float ComputeReward(QStatus s, int stepCount, QStatus nextS, int nextStepCount, bool timeout, bool exitFound)
     {
+        // - delta steps
         float reward = (nextStepCount - stepCount) * Rewards.StepCost; // - delta steps
-        if(s.TM24PickedUp != nextS.TM24PickedUp) reward += Rewards.TM24PickedUp;
+
+        // manhattan distance to the exit
+        int sDistanceToExit = GetManhattanDistance((s.X, s.Y), _exitPosition);
+        int nextSDistanceToExit = GetManhattanDistance((nextS.X, nextS.Y), _exitPosition);
+        int distDelta = sDistanceToExit - nextSDistanceToExit;
+        float shaping = nextSDistanceToExit < sDistanceToExit 
+                        ? distDelta * Rewards.CloseToExit               // + reward if closer to the exit
+                        : distDelta * (Rewards.CloseToExit * 0.5f);     // if I'm farther - penalization ( smaller that reward to encourage exploration)
+        reward += shaping;
+
+        // + items rewards
+        if (s.TM24PickedUp != nextS.TM24PickedUp) reward += Rewards.TM24PickedUp;
         if(s.MasterballPickedUp != nextS.MasterballPickedUp) reward += Rewards.MasterballPickedUp;
         if(s.PearlPickedUp != nextS.PearlPickedUp) reward += Rewards.PearlPickedUp;
 
-        if(timeout) reward += Rewards.Timeout;
+        // termination rewards
+        if (timeout) reward += Rewards.Timeout;
         if(exitFound) reward += Rewards.ExitFound;
         
 
@@ -112,5 +117,6 @@ internal sealed class TrainingEpisodeOrchestrator(
         return ENDING_EPSILON + (STARTING_EPSILON - ENDING_EPSILON) * cosDecay;
     }
 
+    private static int GetManhattanDistance((int X, int Y) pos1, (int X, int Y) pos2) => Math.Abs(pos1.X - pos2.X) + Math.Abs(pos1.Y - pos2.Y);
 
 }

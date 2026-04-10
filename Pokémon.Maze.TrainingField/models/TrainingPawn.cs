@@ -57,5 +57,5 @@ internal sealed class TrainingPawn(
         _qTable[sIndex, aIndex] = _qTable[sIndex, aIndex] + _alpha * (r + _gamma * maxQValue - _qTable[sIndex, aIndex]);
     }
 
-    public string ExportQTable() => _qTable.ToString();
+    public void SaveQTable(BinaryWriter writer) => _qTable.Save(writer);
 }

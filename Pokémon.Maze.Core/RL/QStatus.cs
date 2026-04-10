@@ -15,8 +15,8 @@ public readonly record struct QStatus(
         int layerSize = gridRows * gridCols;
 
         if (TM24PickedUp)       index += layerSize;    
-        if (MasterballPickedUp) index += layerSize * 2; 
-        if (PearlPickedUp)      index += layerSize * 4;
+        if (MasterballPickedUp) index += layerSize << 1; // *2 
+        if (PearlPickedUp)      index += layerSize << 2; // *4
 
         return index;
     }
