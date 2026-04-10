@@ -44,6 +44,18 @@
                                TextAlignment="Center"
                                TextWrapping="Wrap" />
                 </Border>
+                <TextBlock x:Name="QTableEpisodeTag"
+                           VerticalAlignment="Bottom"
+                           HorizontalAlignment="Left"
+                           Margin="8,0,0,8"
+                           Foreground="White"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Background="#AA222222"
+                           Padding="8,4"
+                           Visibility="Collapsed"
+                           IsHitTestVisible="False"
+                           TextOptions.TextFormattingMode="Display" />
             </Grid>
         </Viewbox>
     </Border>

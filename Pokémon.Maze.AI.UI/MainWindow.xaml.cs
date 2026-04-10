@@ -9,6 +9,7 @@ using Pokémon.Maze.Core.Enums;
 using Pokémon.Maze.Core.RL;
 using System.Threading.Channels;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace Pokémon.Maze.AI.UI;
 
@@ -21,18 +22,11 @@ public partial class MainWindow : Window
     private const string MAZE_GRID_FILE = "maze_grid.data";
     private const string SPRITE_FILE = "sprite.png";
     private const string BALL_FILE = "ball.png";
-    private const string QTABLE_FILE = "qTable.bin";
-    private const int FoundItemMessageDurationMs = 2800;
+    private const int FoundItemMessageDurationMs = 4000;
 
     private static readonly Color SpriteSheetOrangeBackgroundTreatedAsTransparent = Color.FromRgb(0xFF, 0x7F, 0x27);
 
-    // Matches TrainingField hardcoded positions (top to bottom: tm, pearl, masterball)
-    private static readonly IReadOnlyDictionary<ItemType, (int X, int Y)> ItemsPositions = new Dictionary<ItemType, (int X, int Y)>
-    {
-        { ItemType.TM24, (7, 31) },
-        { ItemType.Pearl, (9, 33) },
-        { ItemType.Masterball, (23, 32) },
-    };
+    private static readonly IReadOnlyDictionary<ItemType, (int X, int Y)> ItemsPositions = SharedItemsPositions.Get;
 
     private BitmapSource? _spriteSheet;
     private IReadOnlyDictionary<ItemType, UIElement>? _itemMarkers;
@@ -48,8 +42,14 @@ public partial class MainWindow : Window
     private EpisodeFrame? _nextFrame;
     private int _walkSubStep;
 
-    public MainWindow()
+    private readonly string _qTablePath;
+
+    // default looking for qTable.bin in the resources directory
+    public MainWindow() : this(Path.Combine(AppContext.BaseDirectory, "resources", "qTable.bin")) { }
+
+    public MainWindow(string qTablePath)
     {
+        _qTablePath = qTablePath;
         InitializeComponent();
         _foundItemHideTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(FoundItemMessageDurationMs) };
         _foundItemHideTimer.Tick += (_, _) =>
@@ -66,8 +66,7 @@ public partial class MainWindow : Window
 
         var mazePath = Path.Combine(baseDir, "assets", MAZE_FILE);
         var spritePath = Path.Combine(baseDir, "assets", SPRITE_FILE);
-        var gridPath = Path.Combine(baseDir, "resouces", MAZE_GRID_FILE);
-        var qTablePath = Path.Combine(baseDir, "resouces", QTABLE_FILE);
+        var gridPath = Path.Combine(baseDir, "resources", MAZE_GRID_FILE);
 
         ushort[,] matrix = MazeLoader.GetFromFile(gridPath);
         _mazeTiles = matrix;
@@ -82,7 +81,9 @@ public partial class MainWindow : Window
         var ballPath = System.IO.Path.Combine(baseDir, "assets", BALL_FILE);
         _itemMarkers = BuildItemMarkers(LoadBitmapFrozen(ballPath));
 
-        using var stream = File.OpenRead(qTablePath);
+        ApplyQTableEpisodeTag(_qTablePath);
+
+        using var stream = File.OpenRead(_qTablePath);
         using var reader = new BinaryReader(stream);
         QTable qTable = QTable.Load(reader);
 
@@ -272,6 +273,38 @@ public partial class MainWindow : Window
         FoundItemBanner.Visibility = Visibility.Visible;
         _foundItemHideTimer?.Stop();
         _foundItemHideTimer?.Start();
+    }
+
+    private void ApplyQTableEpisodeTag(string qTablePath)
+    {
+        if (!TryParseEpisodeCountFromQTableFileName(qTablePath, out var n))
+        {
+            QTableEpisodeTag.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        QTableEpisodeTag.Text = $"After {n} episodes";
+        QTableEpisodeTag.Visibility = Visibility.Visible;
+    }
+
+    private static bool TryParseEpisodeCountFromQTableFileName(string path, out int episodes)
+    {
+        episodes = 0;
+        var stem = Path.GetFileNameWithoutExtension(path);
+        if (string.IsNullOrEmpty(stem)) return false;
+
+        var end = Regex.Match(stem, @"_(\d+)$", RegexOptions.CultureInvariant);
+        if (end.Success)
+        {
+            episodes = int.Parse(end.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        var matches = Regex.Matches(stem, @"_(\d+)", RegexOptions.CultureInvariant);
+        if (matches.Count == 0) return false;
+
+        episodes = int.Parse(matches[^1].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+        return true;
     }
 
     private bool IsIce((int X, int Y) p)

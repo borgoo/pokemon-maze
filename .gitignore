@@ -89,3 +89,4 @@ Pokémon.Maze.Matrix.Generator/Properties/launchSettings.json
 Pokémon.Maze.Overlay.Generator/Properties/launchSettings.json
 Pokémon.Maze.CLI/Properties/launchSettings.json
 Pokémon.Maze.TrainingField/Properties/launchSettings.json
+Pokémon.Maze.AI.UI/Properties/launchSettings.json
